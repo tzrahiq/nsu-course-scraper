@@ -6,19 +6,25 @@ echo =======================================================
 echo    NSU Extension AutoSync - Real-Time Sync Daemon
 echo =======================================================
 echo.
+
+:: Detect installation target directory
+if exist "%~dp0extension\manifest.json" (
+    set "TARGET_DIR=%~dp0extension"
+    echo [INFO] Syncing project workspace extension folder.
+) else if exist "%USERPROFILE%\Desktop\NSU_Course_Extension\manifest.json" (
+    set "TARGET_DIR=%USERPROFILE%\Desktop\NSU_Course_Extension"
+    echo [INFO] Syncing Desktop extension folder.
+) else (
+    set "TARGET_DIR=%USERPROFILE%\Desktop\NSU_Course_Extension"
+    echo [INFO] Target folder not found. Initializing Desktop\NSU_Course_Extension...
+    if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"
+)
+
+echo Target: "%TARGET_DIR%"
 echo Watching for updates from GitHub (tzrahiq/nsu-course-scraper)...
 echo Keep this window open or minimized while using the extension.
 echo Press Ctrl+C at any time to stop.
 echo.
-
-set "TARGET_DIR=%USERPROFILE%\Desktop\NSU_Course_Extension"
-
-if not exist "%TARGET_DIR%" (
-    echo [ERROR] NSU_Course_Extension folder not found on Desktop.
-    echo Please run Setup_NSU_Extension.bat first!
-    pause
-    exit /b 1
-)
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$targetDir = [System.Environment]::ExpandEnvironmentVariables('%TARGET_DIR%');" ^
@@ -33,31 +39,25 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  try {" ^
   "    $res = Invoke-RestMethod -Uri $apiUrl -Headers @{'User-Agent'='NSUAutoSync'; 'Cache-Control'='no-cache'} -TimeoutSec 10;" ^
   "    $latestSha = $res.sha;" ^
+  "    $lastSha = if (Test-Path $commitFile) { (Get-Content $commitFile -Raw).Trim() } else { '' };" ^
   "    $time = (Get-Date).ToString('HH:mm:ss');" ^
-  "    if (-not (Test-Path $commitFile)) {" ^
-  "      Set-Content -Path $commitFile -Value $latestSha -Force;" ^
-  "      Write-Host \"[$time] Initialized sync baseline at commit: $($latestSha.Substring(0, 7))\" -ForegroundColor Cyan;" ^
-  "    } else {" ^
-  "      $lastSha = (Get-Content $commitFile -Raw).Trim();" ^
-  "      if ($latestSha -and ($latestSha -ne $lastSha)) {" ^
-  "        Write-Host \"[$time] 🔔 New update detected: $($latestSha.Substring(0, 7)) - Downloading...\" -ForegroundColor Yellow;" ^
-  "        $ProgressPreference = 'SilentlyContinue';" ^
-  "        Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing;" ^
-  "        if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
-  "        Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force;" ^
-  "        $srcDir = Join-Path $tempExtract 'nsu-course-scraper-main\extension';" ^
-  "        if (Test-Path $srcDir) {" ^
-  "          Copy-Item -Path \"$srcDir\*\" -Destination $targetDir -Recurse -Force;" ^
-  "          Set-Content -Path $commitFile -Value $latestSha -Force;" ^
-  "          Write-Host \"[$time] ✅ Extension updated successfully! Click 'Reload Extension' on RDS or in chrome://extensions.\" -ForegroundColor Green;" ^
-  "        };" ^
-  "        if (Test-Path $tempZip) { Remove-Item $tempZip -Force | Out-Null };" ^
-  "        if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
-  "      }" ^
+  "    if ($latestSha -and ($latestSha -ne $lastSha)) {" ^
+  "      Write-Host \"[$time] 🔔 New update detected: $($latestSha.Substring(0, 7)) - Downloading...\" -ForegroundColor Yellow;" ^
+  "      $ProgressPreference = 'SilentlyContinue';" ^
+  "      Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing;" ^
+  "      if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
+  "      Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force;" ^
+  "      $srcDir = Join-Path $tempExtract 'nsu-course-scraper-main\extension';" ^
+  "      if (Test-Path $srcDir) {" ^
+  "        Copy-Item -Path \"$srcDir\*\" -Destination $targetDir -Recurse -Force;" ^
+  "        Set-Content -Path $commitFile -Value $latestSha -Force;" ^
+  "        Write-Host \"[$time] ✅ Extension updated successfully ($($latestSha.Substring(0, 7)))! Click 'Reload Extension' on RDS or in chrome://extensions.\" -ForegroundColor Green;" ^
+  "      };" ^
+  "      if (Test-Path $tempZip) { Remove-Item $tempZip -Force | Out-Null };" ^
+  "      if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
   "    }" ^
   "  } catch {" ^
-  "    # Silent fallback on temporary network glitch or rate limits" ^
+  "    # Silent retry on network glitch" ^
   "  };" ^
   "  Start-Sleep -Seconds 30;" ^
   "}"
-

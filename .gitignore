@@ -22,7 +22,9 @@ build/
 *.csv
 !python/requirements.txt
 
-# OS
+# OS & Sync
 .DS_Store
 Thumbs.db
+.last_commit
+*.last_commit
 

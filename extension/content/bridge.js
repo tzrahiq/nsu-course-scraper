@@ -25,7 +25,9 @@
         } catch (e) {}
       } else if (event.data.type === 'RELOAD_EXTENSION') {
         try {
-          chrome.runtime.reload();
+          chrome.runtime.sendMessage({ type: 'RELOAD_EXTENSION_REQUEST' }, () => {
+            setTimeout(() => window.location.reload(), 300);
+          });
         } catch (e) {
           window.location.reload();
         }
@@ -33,33 +35,40 @@
     }
   });
 
-  // Check for updates from GitHub in isolated world
-  async function checkForUpdates() {
+  // Request update check from background service worker (which bypasses page CORS/CSP)
+  function checkForUpdates() {
     try {
-      const manifest = chrome.runtime.getManifest();
-      const localVersion = manifest.version;
-      const res = await fetch('https://raw.githubusercontent.com/tzrahiq/nsu-course-scraper/main/extension/manifest.json?cache_bust=' + Date.now());
-      if (res.ok) {
-        const remoteManifest = await res.json();
-        if (remoteManifest.version && remoteManifest.version !== localVersion) {
+      chrome.runtime.sendMessage({ type: 'CHECK_UPDATE_REQUEST' }, (res) => {
+        if (chrome.runtime.lastError || !res) return;
+        if (res.hasUpdate) {
           window.postMessage({
             source: 'NSU_SCRAPER_BRIDGE',
             type: 'UPDATE_AVAILABLE',
             payload: {
-              localVersion: localVersion,
-              remoteVersion: remoteManifest.version
+              localVersion: res.localVersion,
+              remoteVersion: res.remoteVersion
             }
           }, '*');
         }
-      }
+      });
     } catch (e) {}
   }
 
-  setTimeout(checkForUpdates, 2500);
+  setTimeout(checkForUpdates, 1500);
 
   // Listen to messages from popup or service worker
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || !message.type) return;
+
+    if (message.type === 'UPDATE_AVAILABLE') {
+      window.postMessage({
+        source: 'NSU_SCRAPER_BRIDGE',
+        type: 'UPDATE_AVAILABLE',
+        payload: message.payload
+      }, '*');
+      sendResponse({ received: true });
+      return true;
+    }
 
     if (message.type === 'GET_PAGE_STATUS') {
       sendResponse({

@@ -46,6 +46,9 @@ if exist "%EXTRACT_DIR%\nsu-course-scraper-main\AutoSync_NSU_Extension.bat" (
     copy /Y "%EXTRACT_DIR%\nsu-course-scraper-main\AutoSync_NSU_Extension.bat" "%USERPROFILE%\Desktop\" >nul
 )
 
+:: Save initial commit SHA
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-RestMethod -Uri 'https://api.github.com/repos/tzrahiq/nsu-course-scraper/commits/main' -Headers @{'User-Agent'='NSUSetup'}; Set-Content -Path '%TARGET_DIR%\.last_commit' -Value $r.sha -Force } catch {}"
+
 echo [3/4] Cleaning up temporary files...
 del /F /Q "%ZIP_PATH%" >nul 2>nul
 rmdir /S /Q "%EXTRACT_DIR%" >nul 2>nul
