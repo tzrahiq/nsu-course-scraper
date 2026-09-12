@@ -41,3 +41,4 @@ In-Browser Notification:
   "Update Available! [🔄 Reload Extension]"
   Simply click that button to instantly apply the new features!
 ========================================================================
+

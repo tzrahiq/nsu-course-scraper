@@ -55,3 +55,4 @@ echo     on "NSU Course Scraper & Filter".
 echo =======================================================
 echo.
 pause
+
