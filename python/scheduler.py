@@ -107,9 +107,120 @@ def sections_clash(secA: Dict, secB: Dict) -> bool:
     return False
 
 
+def is_lab_course(course_code: str) -> bool:
+    """Returns True if the course is a lab (e.g. ends with 'L')."""
+    clean = course_code.strip().upper()
+    return clean.endswith("L") or clean.endswith("LAB")
+
+
+def get_final_exam_day_key(section: Dict) -> Optional[str]:
+    """
+    Computes the final exam day identifier for a theory course section at NSU.
+    NSU schedules final exams based on meeting days (ST/RA vs MW) and time slot parity.
+    - Slot 1 (08:00 - 09:30), Slot 3 (11:20 - 12:50), Slot 5 (02:40 - 04:10) -> ODD parity
+    - Slot 2 (09:40 - 11:10), Slot 4 (01:00 - 02:30), Slot 6 (04:20 - 05:50) -> EVEN parity
+    Classes on the same day group with 1-slot gaps have the same parity and thus share the SAME final exam day.
+    Labs do not participate in finals week written exams.
+    """
+    course = section.get("Course", "").strip().upper()
+    if is_lab_course(course):
+        return None
+
+    time_str = section.get("Time", "").strip()
+    if not time_str or time_str.upper() == "TBA":
+        return None
+
+    slots = section.get("_slots")
+    if slots is None:
+        slots = parse_time_to_slots(time_str)
+        section["_slots"] = slots
+
+    if not slots:
+        return None
+
+    # Determine day group
+    days = set(s.day for s in slots)
+    if "S" in days and "T" in days:
+        day_group = "ST"
+    elif "R" in days and "A" in days:
+        day_group = "ST"  # Treat RA / ST as standard 2-day cluster
+    elif "M" in days and "W" in days:
+        day_group = "MW"
+    elif "S" in days:
+        day_group = "S"
+    elif "M" in days:
+        day_group = "M"
+    elif "T" in days:
+        day_group = "T"
+    elif "W" in days:
+        day_group = "W"
+    elif "R" in days:
+        day_group = "R"
+    elif "A" in days:
+        day_group = "A"
+    else:
+        day_group = "".join(sorted(days))
+
+    first_slot = slots[0]
+    start_min = first_slot.start_min  # minutes from 00:00
+
+    # Match standard NSU slots
+    if 450 <= start_min <= 540:       # ~08:00 AM (Slot 1)
+        parity = "ODD"
+    elif 550 <= start_min <= 640:     # ~09:40 AM (Slot 2)
+        parity = "EVEN"
+    elif 650 <= start_min <= 740:     # ~11:20 AM (Slot 3)
+        parity = "ODD"
+    elif 750 <= start_min <= 840:     # ~01:00 PM (Slot 4)
+        parity = "EVEN"
+    elif 850 <= start_min <= 940:     # ~02:40 PM (Slot 5)
+        parity = "ODD"
+    elif 950 <= start_min <= 1040:    # ~04:20 PM (Slot 6)
+        parity = "EVEN"
+    elif 1050 <= start_min <= 1140:   # ~06:00 PM (Slot 7)
+        parity = "ODD"
+    else:
+        slot_num = int((start_min - 480) / 100) + 1
+        parity = "ODD" if slot_num % 2 != 0 else "EVEN"
+
+    return f"{day_group}_{parity}"
+
+
+def sections_share_final_exam_day(secA: Dict, secB: Dict) -> bool:
+    """Returns True if two distinct theory courses share the same final exam day."""
+    courseA = secA.get("Course", "").strip().upper()
+    courseB = secB.get("Course", "").strip().upper()
+    if courseA == courseB:
+        return False
+
+    keyA = get_final_exam_day_key(secA)
+    keyB = get_final_exam_day_key(secB)
+    if keyA is None or keyB is None:
+        return False
+    return keyA == keyB
+
+
+def get_same_day_final_clashes(sections: List[Dict]) -> List[Tuple[Dict, Dict]]:
+    """Returns all pairs of sections in a schedule that share a final exam day."""
+    clashes = []
+    for i in range(len(sections)):
+        for j in range(i + 1, len(sections)):
+            if sections_share_final_exam_day(sections[i], sections[j]):
+                clashes.append((sections[i], sections[j]))
+    return clashes
+
+
 @dataclass
 class GeneratedSchedule:
     sections: List[Dict]
+
+    @property
+    def final_clashes(self) -> List[Tuple[Dict, Dict]]:
+        return get_same_day_final_clashes(self.sections)
+
+    @property
+    def has_same_day_finals(self) -> bool:
+        return len(self.final_clashes) > 0
 
     @property
     def total_seats(self) -> int:
@@ -152,11 +263,13 @@ class ScheduleGenerator:
         self,
         course_codes: List[str],
         open_only: bool = False,
+        no_same_day_finals: bool = False,
         faculty_preferences: Optional[Dict[str, List[str]]] = None,
         max_results: int = 100
     ) -> List[GeneratedSchedule]:
         """
         Backtracking search to find all clash-free combinations picking 1 section per course.
+        Optionally avoids combinations where 2 classes share a final exam day.
         """
         if self.scraper.df.empty:
             self.scraper.fetch()
@@ -283,6 +396,9 @@ class ScheduleGenerator:
                     if sections_clash(sec, chosen):
                         conflict = True
                         break
+                    if no_same_day_finals and sections_share_final_exam_day(sec, chosen):
+                        conflict = True
+                        break
 
                 if not conflict:
                     current_sections.append(sec)
@@ -294,8 +410,8 @@ class ScheduleGenerator:
 
         backtrack(0, [])
 
-        # Sort results: all open first, then minimum days count (compactness), then highest min seats
-        valid_schedules.sort(key=lambda s: (not s.all_open, s.days_count, -s.min_seats))
+        # Sort results: all open first, then no final clashes first, then minimum days count (compactness), then highest min seats
+        valid_schedules.sort(key=lambda s: (not s.all_open, s.has_same_day_finals, s.days_count, -s.min_seats))
         return valid_schedules
 
 
@@ -337,8 +453,16 @@ def display_schedule_summary(schedule: GeneratedSchedule, index: int, total: int
     )
     days_names = [DAY_NAMES.get(d, d)[:3] for d in sorted(list(schedule.days_used), key=lambda x: DAYS_ORDER.index(x) if x in DAYS_ORDER else 9)]
 
+    clashes = schedule.final_clashes
+    if not clashes:
+        finals_str = f"{Fore.GREEN}✅ Spread Out (No Same-Day Finals){Style.RESET_ALL}"
+    else:
+        pairs_str = ", ".join(f"{s1['Course']} & {s2['Course']}" for s1, s2 in clashes)
+        finals_str = f"{Fore.YELLOW}⚠️ Same-Day Finals: {pairs_str}{Style.RESET_ALL}"
+
     print(f"\n{Fore.MAGENTA}{Style.BRIGHT}=== Schedule #{index} of {total} {status_str} ==={Style.RESET_ALL}")
     print(f"Days on Campus ({schedule.days_count} days): {Fore.YELLOW}{', '.join(days_names)}{Style.RESET_ALL}")
+    print(f"Finals Routine: {finals_str}")
     print(f"Quick Advising Code: {Fore.CYAN}{schedule.to_advising_text()}{Style.RESET_ALL}")
     print("-" * 80)
 
@@ -384,13 +508,23 @@ def interactive_scheduler(generator: ScheduleGenerator):
         open_only_input = input("Only include sections with open seats (> 0)? (Y/n): ").strip().lower()
         open_only = open_only_input not in ["n", "no"]
 
+        finals_input = input("Avoid same-day final exams (no 1-slot gaps on same day)? (y/N): ").strip().lower()
+        no_same_day_finals = finals_input in ["y", "yes"]
+
         print(f"\nSearching all conflict-free combinations for {courses}...")
-        schedules = generator.generate(courses, open_only=open_only, max_results=50)
+        schedules = generator.generate(
+            courses,
+            open_only=open_only,
+            no_same_day_finals=no_same_day_finals,
+            max_results=50
+        )
 
         if not schedules:
             print(f"\n{Fore.RED}No conflict-free schedules could be generated with these courses.{Style.RESET_ALL}")
-            if open_only:
-                print(f"{Fore.YELLOW}Tip: Try setting 'open seats only' to No (Y/n) to see if time clashes or full sections caused it.{Style.RESET_ALL}")
+            if no_same_day_finals:
+                print(f"{Fore.YELLOW}Tip: Try setting 'avoid same-day finals' to No to see if final exam clashes caused it.{Style.RESET_ALL}")
+            elif open_only:
+                print(f"{Fore.YELLOW}Tip: Try setting 'open seats only' to No (Y/n) to see if full sections caused it.{Style.RESET_ALL}")
         else:
             print(f"\n{Fore.GREEN}[OK] Generated {len(schedules)} valid conflict-free schedule(s)!{Style.RESET_ALL}")
             current_idx = 0
@@ -443,6 +577,12 @@ def main():
         help="Only include sections with available seats (> 0)"
     )
     parser.add_argument(
+        "--no-same-day-finals", "--avoid-finals-clash",
+        action="store_true",
+        dest="no_same_day_finals",
+        help="Avoid combinations where 2 classes have their final exams on the same day (e.g. 1-slot gaps on the same day)"
+    )
+    parser.add_argument(
         "-n", "--max-schedules",
         type=int,
         default=5,
@@ -465,15 +605,19 @@ def main():
     print(f"Fetching offered courses from NSU RDS...")
     scraper.fetch()
 
-    print(f"Generating conflict-free routines for: {', '.join(args.courses)}...")
+    finals_mode_msg = " [Strict: No same-day finals]" if args.no_same_day_finals else ""
+    print(f"Generating conflict-free routines for: {', '.join(args.courses)}{finals_mode_msg}...")
     schedules = generator.generate(
         course_codes=args.courses,
         open_only=args.open_only,
+        no_same_day_finals=args.no_same_day_finals,
         max_results=args.max_schedules
     )
 
     if not schedules:
         print(f"\n{Fore.RED}No conflict-free schedules found for given courses.{Style.RESET_ALL}")
+        if args.no_same_day_finals:
+            print(f"{Fore.YELLOW}Tip: Try running without --no-same-day-finals to see if same-day finals caused all options to be filtered.{Style.RESET_ALL}")
         sys.exit(1)
 
     print(f"\n{Fore.GREEN}[OK] Found {len(schedules)} conflict-free schedule(s)!{Style.RESET_ALL}")

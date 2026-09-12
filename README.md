@@ -11,6 +11,7 @@ A complete toolkit to scrape, filter, monitor seat availability, and export cour
    - **In-Page Floating Toolbar**: Injected directly onto the RDS page above the table.
    - **Multi-Filter**: Filter multiple courses (e.g. `CSE115, MAT120, ENG102`) and faculties (e.g. `NvA, Shaifur`) simultaneously.
    - **⭐ Routine & Schedule Builder**: Shortlist courses, eliminate time clashes, and view your routine on a visual weekly calendar grid (Sunday through Saturday).
+   - **🎓 Avoid Same-Day Finals**: 1-click toggle to eliminate combinations where 2 classes have final exams on the same day (due to 1-slot gaps on the same day).
    - **Open Seats Only**: 1-click toggle to show sections with available seats (`> 0`).
    - **Data Export**: 1-click **Export to CSV** or **Copy TSV** (paste directly into Excel / Google Sheets).
    - **Popup Mode**: Quick course lookup & 1-click routine launch from any browser tab.
@@ -145,6 +146,9 @@ Generate valid class routines with **zero time conflicts** from shortlisted cour
 ```bash
 # Generate routines locking to multiple specific sections (paired labs auto-pair):
 python scheduler.py -c "CSE115:NvA:1,3" "MAT120:MNA:2,4" "ENG102" --open-only
+
+# Avoid same-day final exams (no 1-slot gaps on the same day):
+python scheduler.py -c "CSE115" "MAT120" "ENG102" --no-same-day-finals
 
 # Generate routines locking to a single section:
 python scheduler.py -c "CSE115:NvA:1"

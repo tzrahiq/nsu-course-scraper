@@ -798,6 +798,19 @@
   color: #b91c1c;
 }
 
+.nsu-tag-finals-ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.nsu-tag-finals-clash {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  cursor: help;
+}
+
 /* Weekly Timetable Grid */
 .nsu-weekly-grid {
   display: grid;

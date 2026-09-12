@@ -99,7 +99,7 @@
       <div class="nsu-panel-header">
         <div class="nsu-panel-title">
           <span>⚡ NSU Course Scraper & Quick Filter</span>
-          <span class="nsu-badge-version">v1.2</span>
+          <span class="nsu-badge-version">v1.3</span>
         </div>
         <div class="nsu-stats-bar" id="nsu-stats-bar">
           <button type="button" class="nsu-btn nsu-btn-amber" id="nsu-btn-open-shortlist">
@@ -1180,6 +1180,10 @@
                   <input type="checkbox" id="nsu-sched-open-only" checked />
                   <span>Available Seats Only (&gt; 0)</span>
                 </label>
+                <label class="nsu-checkbox-label" title="Ensures no two classes in the routine have their final exams on the same day (e.g. classes with 1-slot gaps on the same day).">
+                  <input type="checkbox" id="nsu-sched-avoid-finals" />
+                  <span>🎓 Avoid Same-Day Finals</span>
+                </label>
               </div>
 
               <div class="nsu-actions">
@@ -1344,6 +1348,18 @@
       if (!generatedSchedules[currentScheduleIndex]) return;
       exportSingleScheduleCSV(generatedSchedules[currentScheduleIndex]);
     });
+
+    const chkAvoid = document.getElementById('nsu-sched-avoid-finals');
+    if (chkAvoid) {
+      if (localStorage.getItem('nsu_avoid_same_day_finals') === '1') {
+        chkAvoid.checked = true;
+      }
+      chkAvoid.addEventListener('change', () => {
+        try {
+          localStorage.setItem('nsu_avoid_same_day_finals', chkAvoid.checked ? '1' : '0');
+        } catch (e) {}
+      });
+    }
   }
 
   function openScheduleModal() {
@@ -1477,6 +1493,95 @@
     return false;
   }
 
+  function isLabCourse(courseCode) {
+    if (!courseCode) return false;
+    const clean = courseCode.trim().toUpperCase();
+    return clean.endsWith('L') || clean.endsWith('LAB');
+  }
+
+  function getFinalExamDayKey(section) {
+    if (!section) return null;
+    const course = (section.course || '').trim().toUpperCase();
+    if (isLabCourse(course)) return null;
+
+    const timeStr = (section.time || '').trim();
+    if (!timeStr || timeStr.toUpperCase() === 'TBA') return null;
+
+    const slots = section._slots || parseTimeToSlots(timeStr);
+    if (!slots || slots.length === 0) return null;
+
+    // Day cluster
+    const daysSet = new Set(slots.map(s => s.day));
+    let dayGroup = '';
+    if (daysSet.has('S') && daysSet.has('T')) {
+      dayGroup = 'ST';
+    } else if (daysSet.has('R') && daysSet.has('A')) {
+      dayGroup = 'ST'; // Treat RA as standard ST cluster at NSU
+    } else if (daysSet.has('M') && daysSet.has('W')) {
+      dayGroup = 'MW';
+    } else if (daysSet.has('S')) {
+      dayGroup = 'S';
+    } else if (daysSet.has('M')) {
+      dayGroup = 'M';
+    } else if (daysSet.has('T')) {
+      dayGroup = 'T';
+    } else if (daysSet.has('W')) {
+      dayGroup = 'W';
+    } else if (daysSet.has('R')) {
+      dayGroup = 'R';
+    } else if (daysSet.has('A')) {
+      dayGroup = 'A';
+    } else {
+      dayGroup = Array.from(daysSet).sort().join('');
+    }
+
+    const startMin = slots[0].startMin;
+    let parity = 'ODD';
+    if (startMin >= 450 && startMin <= 540) {        // ~08:00 AM (Slot 1)
+      parity = 'ODD';
+    } else if (startMin >= 550 && startMin <= 640) { // ~09:40 AM (Slot 2)
+      parity = 'EVEN';
+    } else if (startMin >= 650 && startMin <= 740) { // ~11:20 AM (Slot 3)
+      parity = 'ODD';
+    } else if (startMin >= 750 && startMin <= 840) { // ~01:00 PM (Slot 4)
+      parity = 'EVEN';
+    } else if (startMin >= 850 && startMin <= 940) { // ~02:40 PM (Slot 5)
+      parity = 'ODD';
+    } else if (startMin >= 950 && startMin <= 1040) { // ~04:20 PM (Slot 6)
+      parity = 'EVEN';
+    } else if (startMin >= 1050 && startMin <= 1140) { // ~06:00 PM (Slot 7)
+      parity = 'ODD';
+    } else {
+      const slotNum = Math.floor((startMin - 480) / 100) + 1;
+      parity = (slotNum % 2 !== 0) ? 'ODD' : 'EVEN';
+    }
+
+    return `${dayGroup}_${parity}`;
+  }
+
+  function sectionsShareFinalExamDay(secA, secB) {
+    const courseA = (secA.course || '').trim().toUpperCase();
+    const courseB = (secB.course || '').trim().toUpperCase();
+    if (courseA === courseB) return false;
+
+    const keyA = getFinalExamDayKey(secA);
+    const keyB = getFinalExamDayKey(secB);
+    if (!keyA || !keyB) return false;
+    return keyA === keyB;
+  }
+
+  function findSameDayFinalPairs(schedule) {
+    const clashes = [];
+    for (let i = 0; i < schedule.length; i++) {
+      for (let j = i + 1; j < schedule.length; j++) {
+        if (sectionsShareFinalExamDay(schedule[i], schedule[j])) {
+          clashes.push({ secA: schedule[i], secB: schedule[j] });
+        }
+      }
+    }
+    return clashes;
+  }
+
   function getAllSectionsForCourse(courseCode, openOnly, itemsForCourse = null) {
     const codeUpper = courseCode.trim().toUpperCase();
     const allRows = dataTableInstance.rows().data();
@@ -1522,6 +1627,7 @@
     }
 
     const openOnly = document.getElementById('nsu-sched-open-only').checked;
+    const avoidSameDayFinals = document.getElementById('nsu-sched-avoid-finals') ? document.getElementById('nsu-sched-avoid-finals').checked : false;
 
     // Group shortlisted items by course code -> Array of rules
     const courseItemsMap = new Map();
@@ -1575,6 +1681,10 @@
             clash = true;
             break;
           }
+          if (avoidSameDayFinals && sectionsShareFinalExamDay(sec, current[j])) {
+            clash = true;
+            break;
+          }
         }
         if (!clash) {
           current.push(sec);
@@ -1589,9 +1699,13 @@
 
     if (validSchedules.length === 0) {
       const placeholder = document.getElementById('nsu-sched-placeholder');
+      const finalsHint = avoidSameDayFinals
+        ? '<p style="font-size:0.85rem; color:#b45309; margin-top:6px;">💡 Note: <strong>Avoid Same-Day Finals</strong> is enabled. Try unchecking it to see schedules where finals occur on the same day.</p>'
+        : '';
       placeholder.innerHTML = `
         <p style="color:#cf222e; font-weight:700;">⚠️ No Clash-Free Schedules Found</p>
         <p>The sections of your shortlisted faculties have conflicting class times with each other.</p>
+        ${finalsHint}
         <p style="font-size:0.82rem; color:#64748b;">Tip: Try toggling specific section locks to "All Timings" using the chips above, or unchecking "Available Seats Only".</p>
       `;
       placeholder.style.display = 'block';
@@ -1613,10 +1727,13 @@
       sch._daysSet = days;
       sch._allOpen = allOpen;
       sch._minSeats = minSeats === 999 ? 0 : minSeats;
+      sch._finalClashes = findSameDayFinalPairs(sch);
+      sch._hasFinalClash = sch._finalClashes.length > 0;
     });
 
     validSchedules.sort((a, b) => {
       if (a._allOpen !== b._allOpen) return a._allOpen ? -1 : 1;
+      if (a._hasFinalClash !== b._hasFinalClash) return a._hasFinalClash ? 1 : -1;
       if (a._daysCount !== b._daysCount) return a._daysCount - b._daysCount;
       return b._minSeats - a._minSeats;
     });
@@ -1640,11 +1757,20 @@
 
     const tagsEl = document.getElementById('nsu-sched-tags');
     const daysArr = DAYS_ORDER.filter(d => sch._daysSet.has(d)).map(d => DAY_NAMES[d].slice(0, 3));
+    let finalsTag = '';
+    if (sch._hasFinalClash) {
+      const clashCourses = sch._finalClashes.map(c => `${c.secA.course} & ${c.secB.course}`).join(', ');
+      finalsTag = `<span class="nsu-tag nsu-tag-finals-clash" title="These courses share a final exam day due to a 1-slot gap on the same day: ${escapeHTML(clashCourses)}">⚠️ Same-Day Finals: ${escapeHTML(clashCourses)}</span>`;
+    } else {
+      finalsTag = `<span class="nsu-tag nsu-tag-finals-ok" title="All theory courses have finals on separate days!">✅ Finals Spread Out (No Same-Day Finals)</span>`;
+    }
+
     tagsEl.innerHTML = `
       <span class="nsu-tag nsu-tag-days">📅 ${sch._daysCount} Days on Campus (${daysArr.join(', ')})</span>
       <span class="nsu-tag ${sch._allOpen ? 'nsu-tag-open' : 'nsu-tag-full'}">
         ${sch._allOpen ? '🟢 All Sections Open' : '🔴 Some Sections Full'} (${sch._minSeats} min seats)
       </span>
+      ${finalsTag}
     `;
 
     // Render Weekly Grid
