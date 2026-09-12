@@ -33,23 +33,27 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "  try {" ^
   "    $res = Invoke-RestMethod -Uri $apiUrl -Headers @{'User-Agent'='NSUAutoSync'; 'Cache-Control'='no-cache'} -TimeoutSec 10;" ^
   "    $latestSha = $res.sha;" ^
-  "    $lastSha = if (Test-Path $commitFile) { Get-Content $commitFile -Raw } else { '' };" ^
-  "    $lastSha = $lastSha.Trim();" ^
-  "    if ($latestSha -and ($latestSha -ne $lastSha)) {" ^
-  "      $time = (Get-Date).ToString('HH:mm:ss');" ^
-  "      Write-Host \"[$time] 🔔 New update detected: $($latestSha.Substring(0, 7)) - Downloading...\" -ForegroundColor Yellow;" ^
-  "      $ProgressPreference = 'SilentlyContinue';" ^
-  "      Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing;" ^
-  "      if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
-  "      Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force;" ^
-  "      $srcDir = Join-Path $tempExtract 'nsu-course-scraper-main\extension';" ^
-  "      if (Test-Path $srcDir) {" ^
-  "        Copy-Item -Path \"$srcDir\*\" -Destination $targetDir -Recurse -Force;" ^
-  "        Set-Content -Path $commitFile -Value $latestSha -Force;" ^
-  "        Write-Host \"[$time] ✅ Extension updated successfully! Click 'Reload Extension' on RDS or in chrome://extensions.\" -ForegroundColor Green;" ^
-  "      };" ^
-  "      if (Test-Path $tempZip) { Remove-Item $tempZip -Force | Out-Null };" ^
-  "      if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
+  "    $time = (Get-Date).ToString('HH:mm:ss');" ^
+  "    if (-not (Test-Path $commitFile)) {" ^
+  "      Set-Content -Path $commitFile -Value $latestSha -Force;" ^
+  "      Write-Host \"[$time] Initialized sync baseline at commit: $($latestSha.Substring(0, 7))\" -ForegroundColor Cyan;" ^
+  "    } else {" ^
+  "      $lastSha = (Get-Content $commitFile -Raw).Trim();" ^
+  "      if ($latestSha -and ($latestSha -ne $lastSha)) {" ^
+  "        Write-Host \"[$time] 🔔 New update detected: $($latestSha.Substring(0, 7)) - Downloading...\" -ForegroundColor Yellow;" ^
+  "        $ProgressPreference = 'SilentlyContinue';" ^
+  "        Invoke-WebRequest -Uri $zipUrl -OutFile $tempZip -UseBasicParsing;" ^
+  "        if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
+  "        Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force;" ^
+  "        $srcDir = Join-Path $tempExtract 'nsu-course-scraper-main\extension';" ^
+  "        if (Test-Path $srcDir) {" ^
+  "          Copy-Item -Path \"$srcDir\*\" -Destination $targetDir -Recurse -Force;" ^
+  "          Set-Content -Path $commitFile -Value $latestSha -Force;" ^
+  "          Write-Host \"[$time] ✅ Extension updated successfully! Click 'Reload Extension' on RDS or in chrome://extensions.\" -ForegroundColor Green;" ^
+  "        };" ^
+  "        if (Test-Path $tempZip) { Remove-Item $tempZip -Force | Out-Null };" ^
+  "        if (Test-Path $tempExtract) { Remove-Item $tempExtract -Recurse -Force | Out-Null };" ^
+  "      }" ^
   "    }" ^
   "  } catch {" ^
   "    # Silent fallback on temporary network glitch or rate limits" ^

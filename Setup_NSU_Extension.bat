@@ -15,7 +15,7 @@ set "ZIP_PATH=%TEMP%\nsu_ext_repo.zip"
 set "EXTRACT_DIR=%TEMP%\nsu_ext_extract"
 
 echo [1/4] Downloading latest extension from GitHub...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://github.com/tzrahiq/nsu-course-scraper/archive/refs/heads/main.zip' -OutFile '%ZIP_PATH%'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://github.com/tzrahiq/nsu-course-scraper/archive/refs/heads/main.zip' -OutFile '%ZIP_PATH%' -UseBasicParsing"
 
 if not exist "%ZIP_PATH%" (
     echo.

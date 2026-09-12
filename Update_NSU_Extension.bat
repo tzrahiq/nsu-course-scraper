@@ -19,7 +19,7 @@ if not exist "%TARGET_DIR%" (
 )
 
 echo [1/3] Downloading latest code from GitHub...
-powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://github.com/tzrahiq/nsu-course-scraper/archive/refs/heads/main.zip' -OutFile '%ZIP_PATH%'"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri 'https://github.com/tzrahiq/nsu-course-scraper/archive/refs/heads/main.zip' -OutFile '%ZIP_PATH%' -UseBasicParsing"
 
 if not exist "%ZIP_PATH%" (
     echo.
