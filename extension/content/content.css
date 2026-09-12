@@ -1,0 +1,946 @@
+/* NSU RDS Course Scraper & Filter - In-Page UI Styling */
+
+#nsu-filter-panel {
+  background: #ffffff;
+  border: 1px solid #dcdfe6;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 62, 126, 0.08);
+  margin: 16px 0 20px 0;
+  padding: 18px 22px;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.25s ease;
+  position: relative;
+  z-index: 100;
+}
+
+#nsu-filter-panel:hover {
+  box-shadow: 0 6px 20px rgba(0, 62, 126, 0.12);
+  border-color: #b3d4fc;
+}
+
+.nsu-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf2f7;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nsu-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #003e7e;
+}
+
+.nsu-badge-version {
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e8f3ff;
+  color: #0066cc;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.nsu-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.nsu-stat-pill {
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-weight: 600;
+}
+
+.nsu-stat-showing {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.nsu-stat-open {
+  background: #e6f9ed;
+  color: #1a7f37;
+  border: 1px solid #b7ebc7;
+}
+
+.nsu-stat-full {
+  background: #ffebe9;
+  color: #cf222e;
+  border: 1px solid #ffc1ba;
+}
+
+/* Filter controls grid */
+.nsu-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.nsu-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.nsu-input-group label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #333333;
+  display: flex;
+  justify-content: space-between;
+}
+
+.nsu-input-hint {
+  font-size: 0.75rem;
+  color: #888888;
+  font-weight: 400;
+}
+
+.nsu-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nsu-input-wrapper input[type="text"] {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  color: #1e293b;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f8fafc;
+}
+
+.nsu-input-wrapper input[type="text"]:focus {
+  border-color: #0077cc;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 119, 204, 0.15);
+}
+
+.nsu-quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.nsu-chip {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #475569;
+  transition: all 0.15s;
+}
+
+.nsu-chip:hover {
+  background: #003e7e;
+  color: #ffffff;
+  border-color: #003e7e;
+}
+
+/* Checkbox & Options Bar */
+.nsu-options-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.nsu-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.nsu-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #334155;
+  user-select: none;
+  font-weight: 500;
+}
+
+.nsu-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0066cc;
+  cursor: pointer;
+}
+
+/* Action Buttons */
+.nsu-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.nsu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.nsu-btn-primary {
+  background: #003e7e;
+  color: #ffffff;
+}
+
+.nsu-btn-primary:hover {
+  background: #005bb5;
+  box-shadow: 0 2px 6px rgba(0, 62, 126, 0.25);
+}
+
+.nsu-btn-secondary {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.nsu-btn-secondary:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.nsu-btn-success {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.nsu-btn-success:hover {
+  background: #059669;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+}
+
+.nsu-btn-outline {
+  background: transparent;
+  color: #003e7e;
+  border: 1.5px solid #003e7e;
+}
+
+.nsu-btn-outline:hover {
+  background: #f0f7ff;
+}
+
+/* Status Badges in Table Rows */
+.nsu-seat-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  min-width: 48px;
+}
+
+.nsu-seat-open {
+  background-color: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.nsu-seat-full {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.nsu-seat-waitlist {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.nsu-matched-highlight {
+  background-color: #fffae6;
+  font-weight: bold;
+  color: #003e7e;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Toast message */
+.nsu-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1e293b;
+  color: #ffffff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-size: 0.88rem;
+  font-weight: 500;
+  z-index: 99999;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
+.nsu-toast.nsu-toast-show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   Shortlist & Schedule Builder Modal Styles
+   ========================================================================== */
+
+.nsu-btn-amber {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.nsu-btn-amber:hover {
+  background: #d97706;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.nsu-shortlist-badge {
+  background: #ffffff;
+  color: #b45309;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.nsu-row-shortlist-btn {
+  background: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: all 0.15s;
+}
+
+.nsu-row-shortlist-btn:hover {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #f59e0b;
+}
+
+.nsu-row-shortlist-btn.active {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #f59e0b;
+}
+
+/* Shortlist Timing Options Popover */
+.nsu-shortlist-popover {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 62, 126, 0.15), 0 2px 6px rgba(0,0,0,0.06);
+  padding: 12px;
+  width: 320px;
+  z-index: 999999;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: nsuFadeIn 0.15s ease;
+}
+
+@keyframes nsuFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nsu-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 6px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #003e7e;
+}
+
+.nsu-popover-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.nsu-popover-close:hover {
+  color: #475569;
+}
+
+/* Quick Select Buttons */
+.nsu-popover-quick-row {
+  display: flex;
+  gap: 4px;
+}
+
+.nsu-popover-quick-btn {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #334155;
+  padding: 4px 6px;
+  cursor: pointer;
+  flex: 1;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.nsu-popover-quick-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.nsu-popover-quick-btn.active {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
+/* Section Checklist */
+.nsu-popover-sec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 195px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.nsu-popover-sec-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+
+.nsu-popover-sec-item:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.nsu-popover-sec-item.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.nsu-popover-sec-item input[type="checkbox"] {
+  accent-color: #0066cc;
+  cursor: pointer;
+  transform: scale(1.15);
+  margin: 0;
+}
+
+.nsu-popover-sec-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.nsu-popover-sec-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.nsu-popover-sec-time {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.nsu-popover-sec-sub {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.nsu-sec-open {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+.nsu-sec-full {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.nsu-popover-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.nsu-popover-lab-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: #334155;
+  cursor: pointer;
+  padding-top: 4px;
+  border-top: 1px solid #f1f5f9;
+  user-select: none;
+}
+
+.nsu-popover-lab-toggle input[type="checkbox"] {
+  accent-color: #0066cc;
+}
+
+.nsu-popover-remove-btn {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+
+.nsu-popover-remove-btn:hover {
+  background: #fca5a5;
+}
+
+.nsu-timing-tag {
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.68rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* Modal Overlay */
+.nsu-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.nsu-modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nsu-modal-container {
+  background: #ffffff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  overflow: hidden;
+  transform: translateY(15px);
+  transition: transform 0.25s ease;
+}
+
+.nsu-modal-overlay.open .nsu-modal-container {
+  transform: translateY(0);
+}
+
+.nsu-modal-header {
+  padding: 16px 22px;
+  background: #003e7e;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nsu-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nsu-modal-close {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.nsu-modal-close:hover {
+  opacity: 1;
+}
+
+.nsu-modal-body {
+  padding: 18px 22px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f8fafc;
+}
+
+/* Shortlist control bar inside modal */
+.nsu-shortlist-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nsu-shortlist-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nsu-shortlist-input-row {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  max-width: 450px;
+}
+
+.nsu-shortlist-input-row input {
+  flex: 1;
+  padding: 7px 12px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.nsu-shortlist-input-row input:focus {
+  border-color: #0066cc;
+}
+
+.nsu-shortlist-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 32px;
+  align-items: center;
+}
+
+.nsu-shortlist-chip {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nsu-shortlist-chip.nsu-chip-lab {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+  color: #7e22ce;
+}
+
+.nsu-shortlist-chip .remove-btn {
+  background: none;
+  border: none;
+  color: #93c5fd;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.nsu-shortlist-chip .remove-btn:hover {
+  color: #ef4444;
+}
+
+.nsu-generator-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Schedule Navigator */
+.nsu-schedule-nav-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.nsu-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nsu-schedule-counter {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #003e7e;
+}
+
+.nsu-schedule-summary-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.nsu-tag {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.nsu-tag-days {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.nsu-tag-open {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.nsu-tag-full {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Weekly Timetable Grid */
+.nsu-weekly-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .nsu-weekly-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .nsu-weekly-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nsu-day-col {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nsu-day-header {
+  background: #f1f5f9;
+  padding: 8px 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #334155;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.nsu-day-classes {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 120px;
+}
+
+.nsu-day-off-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 16px 0;
+}
+
+/* Class Slot Card */
+.nsu-class-card {
+  background: #f8fafc;
+  border-left: 4px solid #003e7e;
+  border-radius: 4px;
+  padding: 6px 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: transform 0.15s;
+}
+
+.nsu-class-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+}
+
+.nsu-class-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nsu-class-title {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 0.84rem;
+}
+
+.nsu-class-sec {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.nsu-class-faculty {
+  font-weight: 600;
+  color: #003e7e;
+  font-size: 0.76rem;
+}
+
+.nsu-class-time {
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.nsu-class-room {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+/* Distinct Course Colors */
+.nsu-color-0 { border-left-color: #3b82f6; background: #eff6ff; }
+.nsu-color-1 { border-left-color: #10b981; background: #f0fdf4; }
+.nsu-color-2 { border-left-color: #8b5cf6; background: #f5f3ff; }
+.nsu-color-3 { border-left-color: #f59e0b; background: #fffbeb; }
+.nsu-color-4 { border-left-color: #ec4899; background: #fdf2f8; }
+.nsu-color-5 { border-left-color: #06b6d4; background: #ecfeff; }
+
+/* Section List Table in Modal */
+.nsu-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  font-size: 0.82rem;
+}
+
+.nsu-modal-table th {
+  background: #f8fafc;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.nsu-modal-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+

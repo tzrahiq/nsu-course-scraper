@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSU Course Scraper & Filter</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="header-logo">
+          <img src="../icons/icon-48.png" alt="Logo" width="24" height="24">
+        </div>
+        <div class="header-text">
+          <h1>NSU RDS Scraper</h1>
+          <span class="sub-text">Offered Courses &amp; Seats</span>
+        </div>
+      </div>
+      <button type="button" id="btn-open-rds" class="icon-btn" title="Open NSU RDS in new tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+          <polyline points="15 3 21 3 21 9"></polyline>
+          <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Context / Connection Status Banner -->
+    <div id="connection-banner" class="connection-banner">
+      <div class="status-indicator">
+        <span class="status-dot status-loading"></span>
+        <span id="status-text">Checking active tab...</span>
+      </div>
+      <button type="button" id="btn-sync-tab" class="btn-sm btn-link" style="display:none;">Sync Page</button>
+    </div>
+
+    <!-- Search / Filter Form -->
+    <div class="search-section">
+      <div class="input-group">
+        <label for="popup-course-input">Course Codes:</label>
+        <input type="text" id="popup-course-input" placeholder="e.g. CSE115, MAT120, ENG102" autocomplete="off">
+      </div>
+
+      <div class="input-group">
+        <label for="popup-faculty-input">Faculty Initials:</label>
+        <input type="text" id="popup-faculty-input" placeholder="e.g. NvA, Shaifur, ARM" autocomplete="off">
+      </div>
+
+      <div class="filter-options">
+        <label class="checkbox-container">
+          <input type="checkbox" id="popup-toggle-open">
+          <span>Open seats only</span>
+        </label>
+        <label class="checkbox-container">
+          <input type="checkbox" id="popup-toggle-labs" checked>
+          <span>Include Labs</span>
+        </label>
+      </div>
+
+      <div class="action-buttons">
+        <button type="button" id="btn-search" class="btn btn-primary">🔍 Search</button>
+        <button type="button" id="btn-popup-schedule" class="btn btn-amber" title="Generate clash-free routines from course codes">⚡ Routine</button>
+        <button type="button" id="btn-clear" class="btn btn-secondary">Clear</button>
+      </div>
+    </div>
+
+    <!-- Results Overview / Stats -->
+    <div class="results-header" id="results-header" style="display: none;">
+      <div class="results-count" id="results-count">Found: 0 sections</div>
+      <div class="export-actions">
+        <button type="button" id="btn-export-csv" class="btn-xs btn-outline" title="Export to CSV">CSV</button>
+        <button type="button" id="btn-copy-tsv" class="btn-xs btn-outline" title="Copy to clipboard">Copy</button>
+      </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading-spinner" class="loading-state" style="display: none;">
+      <div class="spinner"></div>
+      <span>Fetching courses from NSU RDS...</span>
+    </div>
+
+    <!-- Results Table / List Container -->
+    <div class="results-container" id="results-container">
+      <div class="empty-placeholder" id="empty-placeholder">
+        <div class="empty-icon">📚</div>
+        <p>Enter course codes or faculty initials above and click <strong>Search</strong>.</p>
+      </div>
+      <div class="course-list" id="course-list" style="display: none;">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="popup-toast" class="popup-toast"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
+
