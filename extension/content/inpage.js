@@ -19,6 +19,7 @@
   let currentScheduleIndex = 0;
   let activeShortlistPopover = null;
   let filterShortlistedOnly = false;
+  let selectedFacultyPreferences = new Map(); // Course -> Set of selected faculty initials
 
   // Filter State
   const filterState = {
@@ -100,7 +101,7 @@
       <div class="nsu-panel-header">
         <div class="nsu-panel-title">
           <span>⚡ NSU Course Scraper & Quick Filter</span>
-          <span class="nsu-badge-version">v1.4</span>
+          <span class="nsu-badge-version">v1.5</span>
         </div>
         <div class="nsu-stats-bar" id="nsu-stats-bar">
           <button type="button" class="nsu-btn nsu-btn-amber" id="nsu-btn-open-shortlist">
@@ -1310,6 +1311,24 @@
               <!-- Rendered dynamically -->
             </div>
 
+            <!-- Specific Faculty Options Section -->
+            <div class="nsu-faculty-selection-box" id="nsu-faculty-selection-box" style="display:none;">
+              <div class="nsu-faculty-selection-header">
+                <div class="nsu-faculty-header-title">
+                  <span>👨‍🏫 <strong>Specific Faculty Options:</strong></span>
+                  <span class="nsu-faculty-header-sub">Select which shortlisted faculties to include in your routine</span>
+                </div>
+                <div class="nsu-faculty-header-actions">
+                  <button type="button" class="nsu-btn-text" id="nsu-btn-faculty-select-all" title="Reset all courses to include all their shortlisted faculties">
+                    ✨ Select All Faculties
+                  </button>
+                </div>
+              </div>
+              <div class="nsu-faculty-courses-grid" id="nsu-faculty-courses-grid">
+                <!-- Injected dynamically based on shortlisted courses & faculties -->
+              </div>
+            </div>
+
             <div class="nsu-generator-actions">
               <div class="nsu-toggles">
                 <label class="nsu-checkbox-label">
@@ -1329,8 +1348,8 @@
                 <button type="button" class="nsu-btn nsu-btn-secondary" id="nsu-btn-clear-shortlist">
                   🗑️ Clear All
                 </button>
-                <button type="button" class="nsu-btn nsu-btn-amber" id="nsu-btn-generate-schedules">
-                  ⚡ Generate Clash-Free Schedules
+                <button type="button" class="nsu-btn nsu-btn-amber" id="nsu-btn-generate-schedules" title="Generate clash-free routines using your chosen faculty preferences">
+                  ⚡ Generate with Selected Faculties
                 </button>
               </div>
             </div>
@@ -1456,8 +1475,21 @@
       });
     }
 
+    const selectAllFacBtn = document.getElementById('nsu-btn-faculty-select-all');
+    if (selectAllFacBtn) {
+      selectAllFacBtn.addEventListener('click', () => {
+        const displayCourses = getDisplayCoursesForFacultySelection();
+        displayCourses.forEach((info, course) => {
+          selectedFacultyPreferences.set(course, new Set(info.faculties));
+        });
+        renderFacultySelectionUI();
+        showToast('All shortlisted faculties selected!');
+      });
+    }
+
     document.getElementById('nsu-btn-clear-shortlist').addEventListener('click', () => {
       shortlistedItems.clear();
+      selectedFacultyPreferences.clear();
       saveShortlist();
       decorateSeatsBadges();
       renderShortlistChips();
@@ -1514,6 +1546,7 @@
   function openScheduleModal() {
     injectScheduleModal();
     renderShortlistChips();
+    renderFacultySelectionUI();
     const modal = document.getElementById('nsu-schedule-modal');
     if (modal) modal.classList.add('open');
   }
@@ -1523,12 +1556,239 @@
     if (modal) modal.classList.remove('open');
   }
 
+  function getDisplayCoursesForFacultySelection() {
+    const coursesMap = new Map();
+    shortlistedItems.forEach(item => {
+      // If it's a linked lab, skip top-level entry (it follows its parent theory course)
+      if (item.isLab && item.linkedTheoryKey && shortlistedItems.has(item.linkedTheoryKey)) {
+        return;
+      }
+      const course = (item.course || '').trim().toUpperCase();
+      const fac = (item.faculty || '').trim().toUpperCase();
+      if (!course) return;
+
+      if (!coursesMap.has(course)) {
+        coursesMap.set(course, {
+          course: course,
+          isLab: !!item.isLab,
+          linkedLabCode: null,
+          faculties: new Set()
+        });
+      }
+      const entry = coursesMap.get(course);
+      if (fac) entry.faculties.add(fac);
+
+      if (item.linkedLabKey && shortlistedItems.has(item.linkedLabKey)) {
+        const labItem = shortlistedItems.get(item.linkedLabKey);
+        if (labItem && labItem.course) {
+          entry.linkedLabCode = labItem.course;
+        }
+      }
+    });
+    return coursesMap;
+  }
+
+  function renderFacultySelectionUI() {
+    const box = document.getElementById('nsu-faculty-selection-box');
+    const grid = document.getElementById('nsu-faculty-courses-grid');
+    if (!box || !grid) return;
+
+    if (shortlistedItems.size === 0) {
+      box.style.display = 'none';
+      selectedFacultyPreferences.clear();
+      return;
+    }
+
+    const displayCourses = getDisplayCoursesForFacultySelection();
+    if (displayCourses.size === 0) {
+      box.style.display = 'none';
+      return;
+    }
+
+    box.style.display = 'flex';
+
+    // Synchronize selectedFacultyPreferences with currently shortlisted courses & faculties
+    displayCourses.forEach((info, course) => {
+      if (!selectedFacultyPreferences.has(course)) {
+        selectedFacultyPreferences.set(course, new Set(info.faculties));
+      } else {
+        const currentSet = selectedFacultyPreferences.get(course);
+        // Remove any faculties that are no longer shortlisted
+        for (const f of currentSet) {
+          if (!info.faculties.has(f)) {
+            currentSet.delete(f);
+          }
+        }
+        // If empty, restore all
+        if (currentSet.size === 0) {
+          info.faculties.forEach(f => currentSet.add(f));
+        }
+      }
+    });
+
+    for (const c of selectedFacultyPreferences.keys()) {
+      if (!displayCourses.has(c)) {
+        selectedFacultyPreferences.delete(c);
+      }
+    }
+
+    let html = '';
+    displayCourses.forEach((info, course) => {
+      const facList = Array.from(info.faculties).sort();
+      const selectedSet = selectedFacultyPreferences.get(course) || new Set(facList);
+
+      let dropdownVal = '__ALL__';
+      if (selectedSet.size === facList.length) {
+        dropdownVal = '__ALL__';
+      } else if (selectedSet.size === 1) {
+        dropdownVal = Array.from(selectedSet)[0];
+      } else {
+        dropdownVal = '__CUSTOM__';
+      }
+
+      html += `
+        <div class="nsu-faculty-course-card" data-course="${escapeHTML(course)}">
+          <div class="nsu-faculty-course-badge-wrap">
+            <span class="nsu-course-badge">${escapeHTML(course)}</span>
+            ${info.linkedLabCode ? `<span class="nsu-lab-badge">+ ${escapeHTML(info.linkedLabCode)}</span>` : ''}
+            <span class="nsu-faculty-count-badge">${facList.length} faculty option${facList.length > 1 ? 's' : ''}</span>
+          </div>
+
+          <div class="nsu-faculty-control-group">
+            <div class="nsu-faculty-select-wrap">
+              <label class="nsu-faculty-label">Faculty:</label>
+              <select class="nsu-faculty-dropdown" data-course="${escapeHTML(course)}">
+                <option value="__ALL__" ${dropdownVal === '__ALL__' ? 'selected' : ''}>✨ Any Shortlisted (${facList.join(', ')})</option>
+                ${facList.map(f => `
+                  <option value="${escapeHTML(f)}" ${dropdownVal === f ? 'selected' : ''}>👨‍🏫 Only ${escapeHTML(f)}</option>
+                `).join('')}
+                ${dropdownVal === '__CUSTOM__' ? `<option value="__CUSTOM__" selected>⚙️ Custom (${selectedSet.size} of ${facList.length})</option>` : ''}
+              </select>
+            </div>
+
+            <div class="nsu-faculty-pills-list" data-course="${escapeHTML(course)}">
+              ${facList.map(f => {
+                const isChecked = selectedSet.has(f);
+                return `
+                  <label class="nsu-faculty-pill ${isChecked ? 'active' : ''}" title="Include ${escapeHTML(f)} for ${escapeHTML(course)}">
+                    <input type="checkbox" data-course="${escapeHTML(course)}" data-faculty="${escapeHTML(f)}" ${isChecked ? 'checked' : ''} />
+                    <span>${escapeHTML(f)}</span>
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    grid.innerHTML = html;
+
+    // Bind dropdown change events
+    grid.querySelectorAll('.nsu-faculty-dropdown').forEach(select => {
+      select.addEventListener('change', () => {
+        const course = select.getAttribute('data-course');
+        const val = select.value;
+        const info = displayCourses.get(course);
+        if (!info) return;
+
+        const facList = Array.from(info.faculties);
+        let selectedSet = selectedFacultyPreferences.get(course);
+        if (!selectedSet) {
+          selectedSet = new Set();
+          selectedFacultyPreferences.set(course, selectedSet);
+        }
+
+        if (val === '__ALL__') {
+          selectedSet.clear();
+          facList.forEach(f => selectedSet.add(f));
+        } else if (val === '__CUSTOM__') {
+          // Keep current custom selection
+        } else {
+          selectedSet.clear();
+          selectedSet.add(val);
+        }
+
+        // Sync pills
+        const card = grid.querySelector(`.nsu-faculty-course-card[data-course="${CSS.escape(course)}"]`);
+        if (card) {
+          card.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+            const f = chk.getAttribute('data-faculty');
+            chk.checked = selectedSet.has(f);
+            const pillLabel = chk.closest('.nsu-faculty-pill');
+            if (pillLabel) {
+              if (chk.checked) pillLabel.classList.add('active');
+              else pillLabel.classList.remove('active');
+            }
+          });
+        }
+      });
+    });
+
+    // Bind checkbox change events
+    grid.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const course = chk.getAttribute('data-course');
+        const fac = chk.getAttribute('data-faculty');
+        const info = displayCourses.get(course);
+        if (!info) return;
+
+        const facList = Array.from(info.faculties);
+        let selectedSet = selectedFacultyPreferences.get(course);
+        if (!selectedSet) {
+          selectedSet = new Set(facList);
+          selectedFacultyPreferences.set(course, selectedSet);
+        }
+
+        if (chk.checked) {
+          selectedSet.add(fac);
+        } else {
+          if (selectedSet.size <= 1) {
+            chk.checked = true;
+            showToast(`At least one faculty must be selected for ${course}!`);
+            return;
+          }
+          selectedSet.delete(fac);
+        }
+
+        const pillLabel = chk.closest('.nsu-faculty-pill');
+        if (pillLabel) {
+          if (chk.checked) pillLabel.classList.add('active');
+          else pillLabel.classList.remove('active');
+        }
+
+        // Sync dropdown
+        const card = grid.querySelector(`.nsu-faculty-course-card[data-course="${CSS.escape(course)}"]`);
+        if (card) {
+          const select = card.querySelector('.nsu-faculty-dropdown');
+          if (select) {
+            if (selectedSet.size === facList.length) {
+              select.value = '__ALL__';
+            } else if (selectedSet.size === 1) {
+              select.value = Array.from(selectedSet)[0];
+            } else {
+              let customOpt = select.querySelector('option[value="__CUSTOM__"]');
+              if (!customOpt) {
+                customOpt = document.createElement('option');
+                customOpt.value = '__CUSTOM__';
+                select.appendChild(customOpt);
+              }
+              customOpt.textContent = `⚙️ Custom (${selectedSet.size} of ${facList.length})`;
+              select.value = '__CUSTOM__';
+            }
+          }
+        }
+      });
+    });
+  }
+
   function renderShortlistChips() {
     const container = document.getElementById('nsu-shortlist-chips-container');
     if (!container) return;
 
     if (shortlistedItems.size === 0) {
       container.innerHTML = `<span style="color:#94a3b8; font-size:0.82rem; font-style:italic;">No courses shortlisted yet. Click '+ Shortlist' on any table row to choose timing options!</span>`;
+      renderFacultySelectionUI();
       return;
     }
 
@@ -1587,6 +1847,8 @@
         }
       });
     });
+
+    renderFacultySelectionUI();
   }
 
   // --- Clash Detection Logic ---
@@ -1778,9 +2040,40 @@
     const openOnly = document.getElementById('nsu-sched-open-only').checked;
     const avoidSameDayFinals = document.getElementById('nsu-sched-avoid-finals') ? document.getElementById('nsu-sched-avoid-finals').checked : false;
 
-    // Group shortlisted items by course code -> Array of rules
+    // Filter shortlisted items based on user's selected faculty preferences
+    const activeItems = [];
+    shortlistedItems.forEach((item, key) => {
+      // Linked labs will be included along with their parent theory course
+      if (item.isLab && item.linkedTheoryKey && shortlistedItems.has(item.linkedTheoryKey)) {
+        return;
+      }
+
+      const courseCode = (item.course || '').trim().toUpperCase();
+      const fac = (item.faculty || '').trim().toUpperCase();
+      const prefs = selectedFacultyPreferences.get(courseCode);
+
+      // If user selected specific faculties for this course, check if item.faculty is included
+      if (prefs && prefs.size > 0 && !prefs.has(fac)) {
+        return; // Excluded by user faculty preference
+      }
+
+      // Include this theory or standalone lab item
+      activeItems.push(item);
+
+      // Include its linked lab if present
+      if (item.linkedLabKey && shortlistedItems.has(item.linkedLabKey)) {
+        activeItems.push(shortlistedItems.get(item.linkedLabKey));
+      }
+    });
+
+    if (activeItems.length === 0) {
+      showToast('No courses match your selected faculty preferences! Please select at least one faculty.');
+      return;
+    }
+
+    // Group active items by course code -> Array of rules
     const courseItemsMap = new Map();
-    shortlistedItems.forEach(item => {
+    activeItems.forEach(item => {
       if (!courseItemsMap.has(item.course)) {
         courseItemsMap.set(item.course, []);
       }
@@ -1793,13 +2086,13 @@
       const secs = getAllSectionsForCourse(course, openOnly, items);
 
       if (secs.length === 0) {
-        const desc = items.map(it => it.timingMode === 'specific' ? `${it.faculty} Sec ${it.section}` : `${it.faculty} (All)`).join(' / ');
+        const desc = items.map(it => it.timingMode === 'specific' ? `${it.faculty} Sec ${it.section}` : `${it.faculty}`).join(' / ');
         showToast(`No sections found for ${course} (${desc})!`);
         const placeholder = document.getElementById('nsu-sched-placeholder');
         placeholder.innerHTML = `
           <p style="color:#cf222e; font-weight:700;">⚠️ Cannot generate schedule</p>
           <p>Course <strong>${escapeHTML(course)}</strong> with preference [${escapeHTML(desc)}] has 0 sections available${openOnly ? ' with open seats' : ''}.</p>
-          <p style="font-size:0.8rem; color:#64748b;">Tip: Try unchecking "Available Seats Only" or toggling the timing tag on the course chip above to allow all timings.</p>
+          <p style="font-size:0.8rem; color:#64748b;">Tip: Try choosing another faculty option in the "Specific Faculty Options" section above or unchecking "Available Seats Only".</p>
         `;
         placeholder.style.display = 'block';
         document.getElementById('nsu-schedule-viewer').style.display = 'none';
