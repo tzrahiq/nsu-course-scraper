@@ -18,6 +18,7 @@
   let generatedSchedules = [];
   let currentScheduleIndex = 0;
   let activeShortlistPopover = null;
+  let filterShortlistedOnly = false;
 
   // Filter State
   const filterState = {
@@ -99,7 +100,7 @@
       <div class="nsu-panel-header">
         <div class="nsu-panel-title">
           <span>⚡ NSU Course Scraper & Quick Filter</span>
-          <span class="nsu-badge-version">v1.3</span>
+          <span class="nsu-badge-version">v1.4</span>
         </div>
         <div class="nsu-stats-bar" id="nsu-stats-bar">
           <button type="button" class="nsu-btn nsu-btn-amber" id="nsu-btn-open-shortlist">
@@ -160,6 +161,9 @@
         </div>
 
         <div class="nsu-actions">
+          <button type="button" class="nsu-btn nsu-btn-shortlist-toggle" id="nsu-btn-toggle-shortlist" title="Filter table to show only your shortlisted courses">
+            ⭐ Show Shortlisted (<span id="nsu-shortlist-btn-count">0</span>)
+          </button>
           <button type="button" class="nsu-btn nsu-btn-primary" id="nsu-btn-filter">
             🔍 Filter
           </button>
@@ -205,14 +209,26 @@
     facultyInput.addEventListener('input', triggerDebouncedFilter);
     openToggle.addEventListener('change', () => applyFilterFromUI());
     labsToggle.addEventListener('change', () => applyFilterFromUI());
+    const toggleShortlistBtn = document.getElementById('nsu-btn-toggle-shortlist');
+    if (toggleShortlistBtn) {
+      toggleShortlistBtn.addEventListener('click', () => toggleShowShortlisted());
+    }
 
-    filterBtn.addEventListener('click', () => applyFilterFromUI());
+    filterBtn.addEventListener('click', () => {
+      if (filterShortlistedOnly) {
+        toggleShowShortlisted(false);
+      }
+      applyFilterFromUI();
+    });
 
     resetBtn.addEventListener('click', () => {
       courseInput.value = '';
       facultyInput.value = '';
       openToggle.checked = false;
       labsToggle.checked = true;
+      if (filterShortlistedOnly) {
+        toggleShowShortlisted(false);
+      }
       saveState();
       applyFilterFromUI();
       showToast('Filters cleared');
@@ -281,12 +297,101 @@
 
     if (dataTableInstance) {
       // If actively searching courses or faculties, show all matching rows on one page for convenience
-      if (filterState.courses.length > 0 || filterState.faculties.length > 0) {
+      if (filterShortlistedOnly || filterState.courses.length > 0 || filterState.faculties.length > 0) {
         dataTableInstance.page.len(-1); // Show all matching rows
       } else {
         dataTableInstance.page.len(50); // Default pagination
       }
       dataTableInstance.draw();
+    }
+  }
+
+  function isRowShortlisted(courseCol, secCol, facultyCol) {
+    if (!shortlistedItems || shortlistedItems.size === 0) return false;
+
+    const rawCourse = (courseCol || '').trim().split(/[\s\n\r]+/)[0].toUpperCase();
+    const cleanSec = (secCol || '').toString().trim();
+    const cleanFac = (facultyCol || '').trim().toUpperCase();
+
+    for (const item of shortlistedItems.values()) {
+      if (!item || !item.course) continue;
+      const itemCourse = (item.course || '').trim().toUpperCase();
+      const itemFac = (item.faculty || '').trim().toUpperCase();
+
+      const courseMatches = (rawCourse === itemCourse ||
+        rawCourse.startsWith(itemCourse + '/') ||
+        rawCourse.endsWith('/' + itemCourse) ||
+        rawCourse.includes('/' + itemCourse + '/'));
+
+      if (!courseMatches) continue;
+
+      if (itemFac && cleanFac !== itemFac) continue;
+
+      if (item.timingMode === 'all_faculty') {
+        return true;
+      }
+
+      const secArr = item.sections && Array.isArray(item.sections) ? item.sections : (item.section ? [item.section] : []);
+      if (secArr.length === 0 || secArr.includes(cleanSec)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function toggleShowShortlisted(forceState) {
+    if (typeof forceState === 'boolean') {
+      filterShortlistedOnly = forceState;
+    } else {
+      filterShortlistedOnly = !filterShortlistedOnly;
+    }
+
+    if (filterShortlistedOnly && shortlistedItems.size === 0) {
+      filterShortlistedOnly = false;
+      updateShortlistToggleBtn();
+      showToast('⚠️ No courses shortlisted yet! Click "+ Shortlist" on any course row first.');
+      return;
+    }
+
+    updateShortlistToggleBtn();
+
+    if (dataTableInstance) {
+      if (filterShortlistedOnly) {
+        dataTableInstance.page.len(-1); // Show all shortlisted courses on 1 page
+      } else {
+        if (filterState.courses.length > 0 || filterState.faculties.length > 0) {
+          dataTableInstance.page.len(-1);
+        } else {
+          dataTableInstance.page.len(50);
+        }
+      }
+      dataTableInstance.draw();
+    }
+
+    if (filterShortlistedOnly) {
+      showToast(`⭐ Displaying ${shortlistedItems.size} shortlisted item(s) in table`);
+    } else {
+      showToast('Showing all courses');
+    }
+  }
+
+  function updateShortlistToggleBtn() {
+    const btn = document.getElementById('nsu-btn-toggle-shortlist');
+    const countSpan = document.getElementById('nsu-shortlist-btn-count');
+    if (countSpan) {
+      countSpan.textContent = shortlistedItems.size;
+    }
+    if (btn) {
+      if (filterShortlistedOnly) {
+        btn.classList.add('active');
+        btn.innerHTML = `👁️ Show All Courses`;
+        btn.title = `Currently showing only shortlisted courses. Click to restore full table view.`;
+      } else {
+        btn.classList.remove('active');
+        btn.innerHTML = `⭐ Show Shortlisted (<span id="nsu-shortlist-btn-count">${shortlistedItems.size}</span>)`;
+        btn.title = `Filter table to only show your shortlisted courses (${shortlistedItems.size} shortlisted)`;
+      }
     }
   }
 
@@ -298,12 +403,26 @@
     $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
       // If table is not offeredCourseTbl, skip
       if (settings.sTableId !== 'offeredCourseTbl') return true;
-      if (!customSearchFilterActive) return true;
+      if (!customSearchFilterActive && !filterShortlistedOnly) return true;
 
       const courseCol = (data[1] || '').trim().toUpperCase();
+      const secCol = (data[2] || '').trim();
       const facultyCol = (data[3] || '').trim().toUpperCase();
       const seatText = (data[6] || '').trim();
       const seats = parseInt(seatText, 10);
+
+      // If Shortlisted Only filter is active
+      if (filterShortlistedOnly) {
+        if (!isRowShortlisted(courseCol, secCol, facultyCol)) {
+          return false;
+        }
+        if (filterState.openOnly) {
+          if (isNaN(seats) || seats <= 0) {
+            return false;
+          }
+        }
+        return true;
+      }
 
       // Check Open Seats filter
       if (filterState.openOnly) {
@@ -457,7 +576,11 @@
     const openEl = document.getElementById('nsu-stat-open');
 
     if (showingEl) {
-      showingEl.textContent = `Showing: ${filteredCount} of ${totalCount} sections`;
+      if (filterShortlistedOnly) {
+        showingEl.textContent = `Showing: ${filteredCount} shortlisted row(s)`;
+      } else {
+        showingEl.textContent = `Showing: ${filteredCount} of ${totalCount} sections`;
+      }
     }
     if (openEl) {
       openEl.textContent = `Open Sections: ${openCount} (${totalSeats} available seats)`;
@@ -691,6 +814,19 @@
     const badge = document.getElementById('nsu-shortlist-count');
     if (badge) {
       badge.textContent = shortlistedItems.size;
+    }
+    updateShortlistToggleBtn();
+    if (filterShortlistedOnly) {
+      if (shortlistedItems.size === 0) {
+        filterShortlistedOnly = false;
+        updateShortlistToggleBtn();
+        if (dataTableInstance) {
+          dataTableInstance.page.len(50);
+          dataTableInstance.draw();
+        }
+      } else if (dataTableInstance) {
+        dataTableInstance.draw();
+      }
     }
   }
 
@@ -1187,6 +1323,9 @@
               </div>
 
               <div class="nsu-actions">
+                <button type="button" class="nsu-btn nsu-btn-outline" id="nsu-btn-modal-view-table" title="View these shortlisted courses in the main table">
+                  🔍 View in Table
+                </button>
                 <button type="button" class="nsu-btn nsu-btn-secondary" id="nsu-btn-clear-shortlist">
                   🗑️ Clear All
                 </button>
@@ -1306,6 +1445,16 @@
     addInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') handleAdd();
     });
+
+    const modalViewTableBtn = document.getElementById('nsu-btn-modal-view-table');
+    if (modalViewTableBtn) {
+      modalViewTableBtn.addEventListener('click', () => {
+        closeScheduleModal();
+        toggleShowShortlisted(true);
+        const tbl = document.getElementById('offeredCourseTbl');
+        if (tbl) tbl.scrollIntoView({ behavior: 'smooth' });
+      });
+    }
 
     document.getElementById('nsu-btn-clear-shortlist').addEventListener('click', () => {
       shortlistedItems.clear();

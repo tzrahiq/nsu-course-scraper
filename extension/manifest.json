@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NSU Course Scraper & Filter",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Scrape, filter by course codes and faculties, check seat availability, and generate clash-free routines on NSU RDS.",
   "permissions": [
     "storage",

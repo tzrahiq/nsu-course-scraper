@@ -326,6 +326,29 @@
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 
+.nsu-btn-shortlist-toggle {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px solid #f59e0b;
+  font-weight: 700;
+}
+
+.nsu-btn-shortlist-toggle:hover {
+  background: #fde68a;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.25);
+}
+
+.nsu-btn-shortlist-toggle.active {
+  background: #d97706;
+  color: #ffffff;
+  border-color: #b45309;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+}
+
+.nsu-btn-shortlist-toggle.active:hover {
+  background: #b45309;
+}
+
 .nsu-shortlist-badge {
   background: #ffffff;
   color: #b45309;
